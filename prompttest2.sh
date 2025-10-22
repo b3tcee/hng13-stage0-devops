@@ -98,7 +98,7 @@ esac
 log "== Stage 2: Clone or Update Repository =="
 
 # Create a directory to hold the repo
-WORK_DIR="C:\Users\botoyo\devops-task\deployment_repo"
+WORK_DIR="C:\Users\User\Documents\devops-task\deployment_repo"
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
@@ -138,7 +138,7 @@ fi
 cd "$WORK_DIR" || err_exit 12 "Failed to navigate into repository directory."
 
 # Check for Dockerfile or docker-compose.yml
-if [ -f "C:\Users\botoyo\devops-task\deployment_repo\hng13-stage0-devops\Dockerfile" ]; then
+if [ -f "C:\Users\User\Documents\devops_task\hng13-stage0-devops\Dockerfile" ]; then
   log " Dockerfile found."
 elif [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ]; then
   log " docker-compose file found."
@@ -224,7 +224,7 @@ log "== Stage 6: Deploy Dockerized Application =="
 
 # Variables
 REMOTE_PATH="/home/$SERVER_USERNAME/app"
-LOCAL_PATH="C:\Users\botoyo\devops-task\deployment_repo\hng13-stage0-devops"
+LOCAL_PATH="/c/Users/User/Documents/devops_task/hng13-stage0-devops"
 
 # Transfer project files via scp
 log "Transferring project files to remote server..."
@@ -263,12 +263,17 @@ ssh -i "$SERVER_SSHKEYPATH" "$SERVER_USERNAME@$SERVER_IPADDRESS" <<'REMOTE_CMDS'
 REMOTE_CMDS
 
 # Validate from local machine
+
 log "Checking application accessibility..."
-if curl -s "http://$SERVER_IPADDRESS:$APP_PORT" >/dev/null; then
-  log "Application is accessible at http://$SERVER_IPADDRESS:$APP_PORT"
-else
-  log " Could not confirm application accessibility. Check container logs on the remote server."
-fi
+curl -s --max-time 5 "http://$SERVER_IPADDRESS:$APP_PORT" >/dev/null && \
+  log " App accessible" || log " App not accessible"
+
+# log "Checking application accessibility..."
+# if curl -s "http://$SERVER_IPADDRESS:$APP_PORT" >/dev/null; then
+#   log "Application is accessible at http://$SERVER_IPADDRESS:$APP_PORT"
+# else
+#   log " Could not confirm application accessibility. Check container logs on the remote server."
+# fi
 
 
 
