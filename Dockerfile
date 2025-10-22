@@ -2,9 +2,9 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-COPY ..
+COPY . /app/
 
 RUN pip install -r requirement.txt
 
-CMD ['python','app.py']
+CMD ["python","app.py"]
 

@@ -162,13 +162,12 @@ else
 fi
 
 # REMOTE COMMAND Example
-if command -v docker >/dev/null 2>&1; then
+if ssh -i "$SERVER_SSHKEYPATH" "$SERVER_USERNAME@$SERVER_IPADDRESS" "command -v docker >/dev/null 2>&1"; then
     echo "Docker is installed"
 else
     echo "Docker not found"
 fi
-
-
+# --- Prepare Remote Environment ---
 log "== Stage 5: Prepare Remote Environment =="
 
 if ssh -i "$SERVER_SSHKEYPATH" -o StrictHostKeyChecking=no "$SERVER_USERNAME@$SERVER_IPADDRESS" 'bash -s' <<'REMOTE_CMDS'
@@ -221,6 +220,55 @@ else
 fi
 
 
+log "== Stage 6: Deploy Dockerized Application =="
+
+# Variables
+REMOTE_PATH="/home/$SERVER_USERNAME/app"
+LOCAL_PATH="C:\Users\botoyo\devops-task\deployment_repo\hng13-stage0-devops"
+
+# Transfer project files via scp
+log "Transferring project files to remote server..."
+scp -i "$SERVER_SSHKEYPATH" -r "$LOCAL_PATH" "$SERVER_USERNAME@$SERVER_IPADDRESS:$REMOTE_PATH" || err_exit 30 "File transfer failed."
+
+# SSH into remote server and deploy
+ssh -i "$SERVER_SSHKEYPATH" "$SERVER_USERNAME@$SERVER_IPADDRESS" <<'REMOTE_CMDS'
+  set -e
+  echo "== Starting Docker deployment on remote server =="
+
+  cd ~/app || { echo "App directory not found"; exit 31; }
+
+  # Build and run containers
+  if [ -f "docker-compose.yml" ]; then
+    echo "Using docker-compose..."
+    sudo docker-compose down || true
+    sudo docker-compose up -d --build
+  elif [ -f "Dockerfile" ]; then
+    echo "Using Dockerfile..."
+    APP_NAME=$(basename "$PWD")
+    sudo docker build -t "$APP_NAME" .
+    sudo docker run -d -p 8000:8000 "$APP_NAME"
+  else
+    echo " No Dockerfile or docker-compose.yml found"
+    exit 32
+  fi
+
+  # Validate container health
+  echo "Checking running containers..."
+  sudo docker ps
+
+  echo "Checking logs..."
+  sudo docker logs $(sudo docker ps -q | head -n 1) | tail -n 10 || echo "No logs available."
+
+  echo "== Deployment complete =="
+REMOTE_CMDS
+
+# Validate from local machine
+log "Checking application accessibility..."
+if curl -s "http://$SERVER_IPADDRESS:$APP_PORT" >/dev/null; then
+  log "Application is accessible at http://$SERVER_IPADDRESS:$APP_PORT"
+else
+  log " Could not confirm application accessibility. Check container logs on the remote server."
+fi
 
 
 
